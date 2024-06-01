@@ -23,7 +23,6 @@
       const email = document.getElementById('email').value;
       const cpf = document.getElementById('cpf').value;
 
-      // Envia os dados via HTTPS
       const response = await fetch('/collect-data', {
         method: 'POST',
         headers: {
@@ -32,12 +31,10 @@
         body: JSON.stringify({ email, cpf })
       });
 
-      const data = await response.json();
-
       if (response.ok) {
+        const data = await response.json();
         const token = data.token;
-
-        // Conecta ao Socket.IO com JWT
+        
         const socket = io({
           query: { token }
         });

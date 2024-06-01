@@ -3,6 +3,7 @@ const http = require('http');
 const socketIo = require('socket.io');
 const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 
 const app = express();
 const server = http.createServer(app);
@@ -11,10 +12,11 @@ const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 const SECRET_KEY = 'your_secret_key';
 
-// Middleware para processar dados JSON
+
 app.use(bodyParser.json());
 
-// Rota para coleta de dados pessoais e geração de JWT
+app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
+
 app.post('/collect-data', (req, res) => {
   const { email, cpf } = req.body;
 
@@ -22,14 +24,11 @@ app.post('/collect-data', (req, res) => {
     return res.status(400).send('Email e CPF são obrigatórios');
   }
 
-  // Gera um JWT
   const token = jwt.sign({ email, cpf }, SECRET_KEY, { expiresIn: '1h' });
 
-  // Retorna o token para o cliente
   res.json({ token });
 });
 
-// Middleware para verificação de JWT
 const verifyJWT = (socket, next) => {
   const token = socket.handshake.query.token;
 
@@ -42,24 +41,21 @@ const verifyJWT = (socket, next) => {
   });
 };
 
-// Configura o Socket.IO com verificação de JWT
+
 io.use(verifyJWT);
 
 io.on('connection', (socket) => {
   console.log('Usuário conectado:', socket.decoded.email);
 
-  // Envia uma mensagem de confirmação
   socket.emit('confirmation', 'Autenticação bem-sucedida!');
 
-  // Desconecta o usuário após a confirmação
   socket.on('disconnect', () => {
     console.log('Usuário desconectado:', socket.decoded.email);
   });
 });
 
-// Rota para servir a página inicial
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/index.html');
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 server.listen(PORT, () => {
